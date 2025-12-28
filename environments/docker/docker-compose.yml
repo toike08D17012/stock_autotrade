@@ -1,0 +1,13 @@
+services:
+  ml-env:
+    image: python-workspace-template:latest
+    volumes:
+      - ../../../:/home/kujira/workspace
+    tty: true
+    stdin_open: true
+    network_mode: 'host'
+    # runtime: nvidia  # Uncomment if using NVIDIA GPU
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    working_dir: /home/kujira/workspace/python-workspace-template
+    command: ["bash"]
