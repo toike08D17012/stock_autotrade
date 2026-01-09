@@ -1,0 +1,37 @@
+{
+    "name": "Python ML Environment",
+    "dockerComposeFile": [
+        "../environments/docker/docker-compose.yml"
+    ],
+    "service": "ml-env",
+    "workspaceFolder": "/home/kujira/workspace/python-workspace-template",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "charliermarsh.ruff",
+                "ms-toolsai.jupyter",
+                "ms-azuretools.vscode-docker",
+                "tamasfe.even-better-toml"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/home/kujira/.venv/bin/python",
+                "editor.formatOnSave": true,
+                "ruff.enable": true,
+                "ruff.organizeImports": true,
+                "ruff.fixAll": true,
+                "[python]": {
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.fixAll.ruff": "explicit",
+                        "source.organizeImports.ruff": "explicit"
+                    },
+                    "editor.defaultFormatter": "charliermarsh.ruff"
+                }
+            }
+        }
+    },
+    // コンテナ作成後に uv sync を実行して環境を整える
+    "postCreateCommand": "uv sync",
+    "remoteUser": "kujira"
+}
