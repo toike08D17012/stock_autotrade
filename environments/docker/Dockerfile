@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
