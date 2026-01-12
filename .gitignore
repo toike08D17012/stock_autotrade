@@ -67,3 +67,6 @@ data/
 models/
 outputs/
 logs/
+
+# === Generated file by development pipeline
+.devcontainer/docker-compose.generated.yml

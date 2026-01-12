@@ -1,8 +1,10 @@
 {
     "name": "Python ML Environment",
     "dockerComposeFile": [
-        "../environments/docker/docker-compose.yml"
+        "../environments/docker/docker-compose.yml",
+        "docker-compose.generated.yml"
     ],
+    "initializeCommand": "bash .devcontainer/init-gpu.sh",
     "service": "ml-env",
     "workspaceFolder": "/home/kujira/workspace/python-workspace-template",
     "customizations": {
