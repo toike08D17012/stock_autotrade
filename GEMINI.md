@@ -9,7 +9,9 @@
 ### 基本的な考え方
 * 可読性が高く、Pythonic（Pythonらしい）な記述を心がける。
 * 型ヒント（Type Annotations）を積極的に活用する。
+    * Python 3.14を使用するため、`typing.List`や`typing.Tuple`ではなく、標準の`list`, `tuple`などを使用する。
 * DocstringはGoogleスタイルで記述する。
+* コメントおよびDocstringは **英語** で記述する。
 
 ---
 
@@ -37,5 +39,14 @@ ruff format && ruff check --fix && mypy .
 ## 4. チェックリスト
 - [ ] 1行が120文字以内に収まっているか？
 - [ ] Google Styleの命名規則（関数は`snake_case`、クラスは`PascalCase`など）に従っているか？
-- [ ] Docstringは適切に記述されているか？
+- [ ] コメントとDocstringは英語で記述されているか？
 - [ ] コミット前に`ruff format && ruff check --fix && mypy .`を実行したか？
+
+## 5. アウトプット言語
+特に指示がない場合、**すべてのアーティファクト** は **日本語** で作成してください。
+これには以下が含まれますが、これらに限定されません。
+
+- **Task (`task.md`)**
+- **Implementation Plan (`implementation_plan.md`)**
+- **Walkthrough (`walkthrough.md`)**
+- その他、ユーザーへの報告や計画に関するドキュメント
