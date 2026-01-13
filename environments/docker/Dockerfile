@@ -54,8 +54,11 @@ ARG REPO_NAME
 ENV WORK_DIR=${HOME}/workspace/${REPO_NAME}
 ENV PYTHON_VERSION=3.14.2 \
     UV_PROJECT=${WORK_DIR}/environments/python \
-    UV_PROJECT_ENVIRONMENT=${HOME}/.venv
-ENV RUFF_CONFIG=${UV_PROJECT}/pyprojcet.toml
+    UV_PROJECT_ENVIRONMENT=${HOME}/.venv \
+    XDG_CONFIG_HOME=${HOME}/.config
+ENV RUFF_CONFIG=${UV_PROJECT}/pyproject.toml
+
+COPY --chown=${USER_UID}:${USER_GID} environments/docker/pyproject.ruff.toml ${XDG_CONFIG_HOME}/ruff/pyproject.toml
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="${UV_PROJECT_ENVIRONMENT}/bin:${PATH}:/root/.cargo/bin:${HOME}/.local/bin:${PATH}"
