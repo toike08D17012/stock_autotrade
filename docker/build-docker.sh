@@ -6,7 +6,7 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 USER_NAME="${USER_NAME:-kujira}"
 GROUP_NAME="${GROUP_NAME:-$USER_NAME}"
 
-CONTEXT="../.."   # レポジトリルート
+CONTEXT=".."   # レポジトリルート
 REPO_NAME="$(basename "$(cd "${CONTEXT}" && pwd)")"
 
 # bash の組込み $UID をそのまま使う（上書きしない）

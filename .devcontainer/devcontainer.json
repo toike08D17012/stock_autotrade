@@ -1,7 +1,7 @@
 {
     "name": "Python ML Environment",
     "dockerComposeFile": [
-        "../environments/docker/docker-compose.yml",
+        "../docker/docker-compose.yml",
         "docker-compose.generated.yml"
     ],
     "initializeCommand": "bash .devcontainer/init-gpu.sh",

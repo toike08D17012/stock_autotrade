@@ -2,7 +2,7 @@ services:
   ml-env:
     image: python-workspace-template:latest
     volumes:
-      - ../../../:/home/kujira/workspace
+      - ../:/home/kujira/workspace/python-workspace-template
     tty: true
     stdin_open: true
     network_mode: 'host'

@@ -5,7 +5,7 @@
 # オーバーライドファイルを生成します。
 
 GENERATED_FILE=".devcontainer/docker-compose.generated.yml"
-GPU_COMPOSE_FILE="environments/docker/docker-compose.gpu.yml"
+GPU_COMPOSE_FILE="../docker/docker-compose.gpu.yml"
 
 echo "🔍 Checking for NVIDIA GPU..."
 
