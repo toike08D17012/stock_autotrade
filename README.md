@@ -5,6 +5,26 @@
 Pythonプロジェクト開発用のテンプレートリポジトリです。
 Dev Container、uv、Ruff、Mypyを用いたモダンな開発環境を提供します。
 
+## 最初にやること
+以下の指示をCoding Agentにお願いしてください
+なお、〇〇の部分は適宜置き換えてください
+```
+このレポジトリは〇〇を目的としたレポジトリです。
+以下の箇所を適切に修正してください
+- `README.md` / `README_en.md`の「最初にやること」/「Inital Setup」の章を削除
+- `README.md` / `README_en.md`のレポジトリの説明を修正
+- `docker/docker-compose.yml`の以下の内容をレポジトリ名に合わせて修正
+    - image名
+    - サービス名
+    - volumes
+    - working_dir
+- `docker/run-docker.sh`の起動するサービス名をレポジトリ名に合わせて修正
+- `.devcontainer/devcontainer.json`の以下の内容をレポジトリ名に合わせて修正
+    - name
+    - service
+    - workSpaceForder
+```
+
 ## 機能・特徴
 
 - **パッケージ管理**: `uv` を使用した高速な依存関係解決
@@ -37,5 +57,5 @@ ruff format && ruff check --fix && mypy .
 ## ディレクトリ構成
 
 - `.devcontainer/`: Dev Container 設定 (VS Code用)
-- `environments/python/`: Python プロジェクト定義 (`pyproject.toml` はここに配置)
+- `docker/`: docker関連ファイル
 - `GEMINI.md`: コーディング規約 (Google Style, Ruff設定など)

@@ -5,6 +5,26 @@
 A template repository for Python project development.
 Provides a modern development environment using Dev Container, uv, Ruff, and Mypy.
 
+## Initial Setup
+Please provide the following instructions to the Coding Agent. Note: Replace [XX] with the appropriate values for your project.
+
+Plaintext
+This repository is intended for [XX]. 
+Please update the following items accordingly:
+
+- Delete the "First Steps" / "Inital Setup" sections from both `README.md` and `README_en.md`.
+- Update the repository description in `README.md` and `README_en.md`.
+- In `docker/docker-compose.yml`, update the following to match the repository name:
+    - Image name
+    - Service name
+    - volumes
+    - working_dir
+- In `docker/run-docker.sh`, update the service name to be launched to match the repository name.
+- In `.devcontainer/devcontainer.json`, update the following to match the repository name:
+    - name
+    - service
+    - workspaceFolder
+
 ## Features
 
 - **Package Management**: High-speed dependency resolution using `uv`
