@@ -9,4 +9,4 @@ else
     COMPOSE_FILES="-f docker-compose.yml"
 fi
 
-docker compose $COMPOSE_FILES run --rm ml-env
+docker compose $COMPOSE_FILES run --rm stock-autotrade

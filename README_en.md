@@ -2,7 +2,7 @@
 
 [Japanese Version](README.md) | English
 
-A template repository for Python project development.
+This repository is intended for algorithm development and backtesting for stock auto-trading.
 Provides a modern development environment using Dev Container, uv, Ruff, and Mypy.
 
 ## Features

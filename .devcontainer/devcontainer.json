@@ -1,12 +1,12 @@
 {
-    "name": "Python ML Environment",
+    "name": "Stock Autotrade Environment",
     "dockerComposeFile": [
         "../docker/docker-compose.yml",
         "docker-compose.generated.yml"
     ],
     "initializeCommand": "bash .devcontainer/init-gpu.sh",
-    "service": "ml-env",
-    "workspaceFolder": "/home/kujira/workspace/python-workspace-template",
+    "service": "stock-autotrade",
+    "workspaceFolder": "/home/kujira/workspace/stock_autotrade",
     "customizations": {
         "vscode": {
             "extensions": [
