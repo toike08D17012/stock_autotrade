@@ -15,7 +15,8 @@
                 "charliermarsh.ruff",
                 "ms-toolsai.jupyter",
                 "ms-azuretools.vscode-docker",
-                "tamasfe.even-better-toml"
+                "tamasfe.even-better-toml",
+                "openai.chatgpt"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/home/kujira/.venv/bin/python",
