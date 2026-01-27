@@ -1,4 +1,4 @@
-# GEMINI.md - Python Coding Guidelines
+# AGENTS.md - Python Coding Guidelines
 
 ## 1. コーディングスタイル
 本プロジェクトでは **[Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)** をベースとして採用します。
@@ -26,6 +26,7 @@ Ruffは、従来の `black`, `isort`, `flake8` などの機能を統合したツ
 
 ## 3. 開発フロー
 コードを作成・変更した後は、コミット前に必ず以下のコマンドを実行してください。これにより、フォーマットの適用と、自動修正可能なエラーの解決が同時に行われます。
+ただし、以下のコマンドは`docker/run_docker.sh`で起動したコンテナの中で実行をお願いします
 
 ```bash
 # フォーマットの適用、静的解析、型チェック
