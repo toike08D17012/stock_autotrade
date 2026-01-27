@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
     cmake \
+    sudo \
     # Image processing dependencies
     libgl1 \
     libglib2.0-0 \
@@ -39,8 +40,9 @@ ARG GROUP_NAME=${USER_NAME}
 
 ENV HOME=/home/${USER_NAME}
 
-RUN groupadd --gid ${USER_GID} --non-unique ${GROUP_NAME} \
-    && useradd -m --no-log-init --uid ${USER_UID} --non-unique --gid ${USER_GID} --groups sudo --base-dir /home --shell /bin/bash ${USER_NAME} \
+RUN userdel -r ubuntu 2>/dev/null || true \
+    && groupadd --gid ${USER_GID} --non-unique ${GROUP_NAME} \
+    && useradd -m --no-log-init --uid ${USER_UID} --gid ${USER_GID} --groups sudo --base-dir /home --shell /bin/bash ${USER_NAME} \
     && touch ${HOME}/.sudo_as_admin_successful \
     && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
     && echo '${USER_NAME} ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -64,6 +66,8 @@ RUN uv python install ${PYTHON_VERSION} && \
     uv venv --python ${PYTHON_VERSION} ${UV_PROJECT_ENVIRONMENT} \
     && uv sync \
     && uv clean
+
+ENV PYTHONPATH=${WORK_DIR}/src
 
 # Default command
 CMD ["bash"]
