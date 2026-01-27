@@ -27,7 +27,7 @@ uv add <package_name>
 ```
 
 ### 3. Quality Control Commands
-Based on `GEMINI.md`, we recommend the following command for quality checks in this project.
+Based on `AGENTS.md`, we recommend the following command for quality checks in this project.
 
 ```bash
 # Execute formatting, auto-fix linting, and type checking in one go
@@ -37,5 +37,5 @@ ruff format && ruff check --fix && mypy .
 ## Directory Structure
 
 - `.devcontainer/`: Dev Container settings (for VS Code)
-- `environments/python/`: Python project definition (`pyproject.toml` is placed here)
-- `GEMINI.md`: Coding guidelines (Google Style, Ruff settings, etc.)
+- `docker/`: docker related files
+- `AGENTS.md`: Coding guidelines (Google Style, Ruff settings, etc.)
