@@ -5,7 +5,7 @@
         "docker-compose.generated.yml"
     ],
     "initializeCommand": "bash .devcontainer/init-gpu.sh",
-    "service": "stock-autotrade",
+    "service": "stock_autotrade",
     "workspaceFolder": "/home/kujira/workspace/stock_autotrade",
     "customizations": {
         "vscode": {
