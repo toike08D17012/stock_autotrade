@@ -1,7 +1,7 @@
 [project]
-name = "python"
+name = "stock-autotrade"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automated stock trading backtest and strategy optimization framework"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -10,8 +10,10 @@ dependencies = [
     "mypy>=1.8.0",
     "numpy>=2.4.1",
     "opencv-python>=4.11.0.86",
+    "openpyxl>=3.1.2",
     "pandas>=2.3.3",
     "pandas-stubs>=2.3.3.260113",
+    "pytest>=8.3.4",
     "pyyaml>=6.0.3",
     "ruff>=0.14.10",
     "scikit-learn>=1.8.0",
@@ -36,7 +38,7 @@ explicit = true
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cpu", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },  # for Docker on Mac M1/M2 (ARM64 linux)
-    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },                                  # for local Mac
+    { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },                                   # for local Mac
     { index = "pytorch-cu130", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }, # for Docker on Ubuntu (AMD64 linux) with CUDA
 ]
 torchvision = [
@@ -53,15 +55,15 @@ target-version = "py314"
 [tool.ruff.lint]
 # Selected rule groups
 select = [
-    "E",    # pycodestyle errors (Foundation of Google Style)
-    "W",    # pycodestyle warnings
-    "F",    # Pyflakes (Detects unused imports/variables)
-    "I",    # isort (Ensures consistent import sorting)
-    "N",    # pep8-naming (Ensures snake_case/PascalCase compliance)
-    "D",    # pydocstyle (Enforces Google-style docstrings)
-    "UP",   # pyupgrade (Auto-upgrades to modern Python syntax)
-    "B",    # flake8-bugbear (Identifies common design flaws/bugs)
-    "SIM",  # flake8-simplify (Prompts for cleaner, simpler code)
+    "E",   # pycodestyle errors (Foundation of Google Style)
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes (Detects unused imports/variables)
+    "I",   # isort (Ensures consistent import sorting)
+    "N",   # pep8-naming (Ensures snake_case/PascalCase compliance)
+    "D",   # pydocstyle (Enforces Google-style docstrings)
+    "UP",  # pyupgrade (Auto-upgrades to modern Python syntax)
+    "B",   # flake8-bugbear (Identifies common design flaws/bugs)
+    "SIM", # flake8-simplify (Prompts for cleaner, simpler code)
 ]
 ignore = [
     "D100", # Missing docstring in public module
@@ -77,6 +79,14 @@ ignore = [
 force-single-line = false
 lines-after-imports = 2
 
+# === Pytest Configuration ===
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
 [tool.ruff.lint.pydocstyle]
 # Explicitly enforce Google-style conventions for docstrings
 convention = "google"
@@ -88,7 +98,18 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 check_untyped_defs = true
+mypy_path = "src"
+namespace_packages = true
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = "yfinance"
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pytest", "pytest.*"]
+ignore_missing_imports = true
+
+[build-system]
+requires = ["uv_build>=0.9.28,<0.10.0"]
+build-backend = "uv_build"

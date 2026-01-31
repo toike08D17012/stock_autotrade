@@ -63,7 +63,7 @@ wandb/
 mlruns/
 
 # === Project Specific (Data/Models often ignored) ===
-data/
+/data/
 models/
 outputs/
 logs/

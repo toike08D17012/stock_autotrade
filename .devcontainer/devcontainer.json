@@ -16,7 +16,7 @@
                 "ms-toolsai.jupyter",
                 "ms-azuretools.vscode-docker",
                 "tamasfe.even-better-toml",
-                "openai.chatgpt"
+                "github.copilot-chat"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/home/kujira/.venv/bin/python",
