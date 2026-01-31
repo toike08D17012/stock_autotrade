@@ -1,5 +1,6 @@
 """Tests for the stock screener script."""
 
+import argparse
 import json
 import pickle
 
@@ -15,7 +16,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from scripts.run_stock_screener import save_results_to_file
+from scripts.run_stock_screener import has_screening_criteria, save_results_to_file, save_tickers_only_to_file
 from stock_autotrade.data.screener import ScreeningResult, StockMetrics, StockScreener
 
 
@@ -162,5 +163,176 @@ class TestSaveResultsToFile:
             # Verify empty file was created (may be empty or have headers only)
             assert Path(output_path).exists()
             assert Path(output_path).stat().st_size >= 0
+        finally:
+            Path(output_path).unlink()
+
+
+class TestHasScreeningCriteria:
+    """Tests for has_screening_criteria function."""
+
+    def test_no_criteria(self) -> None:
+        """Test returns False when no criteria are provided."""
+        args = argparse.Namespace(
+            min_price=None,
+            max_price=None,
+            min_avg_price=None,
+            max_avg_price=None,
+            min_low_price=None,
+            max_low_price=None,
+            min_high_price=None,
+            max_high_price=None,
+            min_volume=None,
+            min_market_cap=None,
+            max_market_cap=None,
+            min_volatility=None,
+            max_volatility=None,
+        )
+        assert has_screening_criteria(args) is False
+
+    def test_with_min_price(self) -> None:
+        """Test returns True when min_price is provided."""
+        args = argparse.Namespace(
+            min_price=100.0,
+            max_price=None,
+            min_avg_price=None,
+            max_avg_price=None,
+            min_low_price=None,
+            max_low_price=None,
+            min_high_price=None,
+            max_high_price=None,
+            min_volume=None,
+            min_market_cap=None,
+            max_market_cap=None,
+            min_volatility=None,
+            max_volatility=None,
+        )
+        assert has_screening_criteria(args) is True
+
+    def test_with_min_volume(self) -> None:
+        """Test returns True when min_volume is provided."""
+        args = argparse.Namespace(
+            min_price=None,
+            max_price=None,
+            min_avg_price=None,
+            max_avg_price=None,
+            min_low_price=None,
+            max_low_price=None,
+            min_high_price=None,
+            max_high_price=None,
+            min_volume=1000000,
+            min_market_cap=None,
+            max_market_cap=None,
+            min_volatility=None,
+            max_volatility=None,
+        )
+        assert has_screening_criteria(args) is True
+
+    def test_with_market_cap(self) -> None:
+        """Test returns True when market cap criteria is provided."""
+        args = argparse.Namespace(
+            min_price=None,
+            max_price=None,
+            min_avg_price=None,
+            max_avg_price=None,
+            min_low_price=None,
+            max_low_price=None,
+            min_high_price=None,
+            max_high_price=None,
+            min_volume=None,
+            min_market_cap=1e9,
+            max_market_cap=None,
+            min_volatility=None,
+            max_volatility=None,
+        )
+        assert has_screening_criteria(args) is True
+
+
+class TestSaveTickersOnlyToFile:
+    """Tests for save_tickers_only_to_file function."""
+
+    def test_save_to_csv(self) -> None:
+        """Test saving tickers to CSV format."""
+        tickers = ["AAPL", "GOOGL", "MSFT"]
+
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            output_path = f.name
+
+        try:
+            save_tickers_only_to_file(tickers, output_path)
+
+            df = pd.read_csv(output_path)
+            assert len(df) == 3
+            assert "ticker" in df.columns
+            assert list(df["ticker"]) == tickers
+        finally:
+            Path(output_path).unlink()
+
+    def test_save_to_json(self) -> None:
+        """Test saving tickers to JSON format."""
+        tickers = ["AAPL", "GOOGL"]
+
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            output_path = f.name
+
+        try:
+            save_tickers_only_to_file(tickers, output_path)
+
+            with open(output_path, encoding="utf-8") as f:
+                data = json.load(f)
+
+            assert "timestamp" in data
+            assert "summary" in data
+            assert data["summary"]["total"] == 2
+            assert data["tickers"] == tickers
+        finally:
+            Path(output_path).unlink()
+
+    def test_save_to_pickle(self) -> None:
+        """Test saving tickers to Pickle format."""
+        tickers = ["AAPL", "GOOGL", "MSFT"]
+
+        with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
+            output_path = f.name
+
+        try:
+            save_tickers_only_to_file(tickers, output_path)
+
+            with open(output_path, "rb") as f:
+                loaded_tickers = pickle.load(f)
+
+            assert loaded_tickers == tickers
+        finally:
+            Path(output_path).unlink()
+
+    def test_save_unknown_extension_defaults_to_csv(self) -> None:
+        """Test that unknown extensions default to CSV format."""
+        tickers = ["AAPL", "GOOGL"]
+
+        with tempfile.NamedTemporaryFile(suffix=".unknown", delete=False) as f:
+            output_path = f.name
+
+        try:
+            save_tickers_only_to_file(tickers, output_path)
+
+            df = pd.read_csv(output_path)
+            assert len(df) == 2
+            assert "ticker" in df.columns
+        finally:
+            Path(output_path).unlink()
+
+    def test_save_empty_tickers(self) -> None:
+        """Test saving empty ticker list doesn't crash."""
+        tickers: list[str] = []
+
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            output_path = f.name
+
+        try:
+            save_tickers_only_to_file(tickers, output_path)
+
+            assert Path(output_path).exists()
+            df = pd.read_csv(output_path)
+            assert len(df) == 0
+            assert "ticker" in df.columns
         finally:
             Path(output_path).unlink()

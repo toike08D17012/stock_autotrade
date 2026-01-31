@@ -28,6 +28,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
+
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -43,6 +45,36 @@ from stock_autotrade.data.screener import (
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 LOGGER = logging.getLogger(__name__)
+
+
+def has_screening_criteria(args: argparse.Namespace) -> bool:
+    """Check if any screening criteria arguments are provided.
+
+    This checks if any filtering criteria (price, volume, market cap, volatility)
+    are specified. Output-related arguments like --output are not considered.
+
+    Args:
+        args: Parsed command line arguments.
+
+    Returns:
+        True if any screening criteria are provided, False otherwise.
+    """
+    criteria_args = [
+        args.min_price,
+        args.max_price,
+        args.min_avg_price,
+        args.max_avg_price,
+        args.min_low_price,
+        args.max_low_price,
+        args.min_high_price,
+        args.max_high_price,
+        args.min_volume,
+        args.min_market_cap,
+        args.max_market_cap,
+        args.min_volatility,
+        args.max_volatility,
+    ]
+    return any(arg is not None for arg in criteria_args)
 
 
 def parse_args() -> argparse.Namespace:
@@ -180,6 +212,57 @@ def save_results_to_file(screener: StockScreener, result: ScreeningResult, outpu
         LOGGER.info("Results saved to CSV: %s", output_path_obj)
 
 
+def save_tickers_only_to_file(tickers: list[str], output_path: str) -> None:
+    """Save ticker list to file without yfinance data.
+
+    The output format matches the screening results format (ticker column only).
+
+    Args:
+        tickers: List of ticker symbols.
+        output_path: Output file path with extension.
+    """
+    output_path_obj = Path(output_path)
+    suffix = output_path_obj.suffix.lower()
+
+    # Create DataFrame with ticker column (matches screening result format)
+    df = pd.DataFrame({"ticker": tickers})
+
+    if suffix == ".csv":
+        df.to_csv(output_path_obj, index=False)
+        LOGGER.info("Tickers saved to CSV: %s", output_path_obj)
+
+    elif suffix == ".json":
+        data = {
+            "timestamp": datetime.now().isoformat(),
+            "summary": {
+                "total": len(tickers),
+                "note": "No screening criteria applied - ticker list only",
+            },
+            "tickers": tickers,
+        }
+        with open(output_path_obj, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        LOGGER.info("Tickers saved to JSON: %s", output_path_obj)
+
+    elif suffix == ".xlsx":
+        try:
+            df.to_excel(output_path_obj, index=False, engine="openpyxl")
+            LOGGER.info("Tickers saved to Excel: %s", output_path_obj)
+        except ImportError:
+            LOGGER.error("openpyxl not installed. Cannot save to Excel format.")
+            raise
+
+    elif suffix == ".pkl":
+        with open(output_path_obj, "wb") as f:
+            pickle.dump(tickers, f)
+        LOGGER.info("Tickers saved to Pickle: %s", output_path_obj)
+
+    else:
+        LOGGER.warning("Unknown file extension '%s'. Defaulting to CSV format.", suffix)
+        df.to_csv(output_path_obj, index=False)
+        LOGGER.info("Tickers saved to CSV: %s", output_path_obj)
+
+
 def main() -> None:
     """Run the stock screening process."""
     args = parse_args()
@@ -194,6 +277,27 @@ def main() -> None:
     else:
         tickers = get_sp500_sample_tickers()
         LOGGER.info("Screening US stocks (S&P 500 sample): %d tickers", len(tickers))
+
+    # If no screening criteria provided, return tickers only (skip yfinance access)
+    if not has_screening_criteria(args):
+        LOGGER.info("No screening criteria provided. Returning ticker list only (no yfinance access).")
+
+        print("\n" + "=" * 60)
+        print("TICKER LIST (No Screening)")
+        print("=" * 60)
+
+        print(f"\nTotal tickers: {len(tickers)}")
+        print("\n--- Tickers ---")
+        for ticker in tickers:
+            print(f"  {ticker}")
+
+        if args.output:
+            save_tickers_only_to_file(tickers, args.output)
+
+        print("\n" + "=" * 60)
+        print("\nTickers (for backtest):")
+        print(tickers)
+        return
 
     # Build screening criteria
     criteria = ScreeningCriteria(

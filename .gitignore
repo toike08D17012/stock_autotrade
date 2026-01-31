@@ -70,3 +70,5 @@ logs/
 
 # === Generated file by development pipeline
 .devcontainer/docker-compose.generated.yml
+
+*.csv
