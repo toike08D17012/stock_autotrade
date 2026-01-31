@@ -1,5 +1,7 @@
 """Tests for parameter optimization module."""
 
+from typing import Any
+
 import pandas as pd
 import pytest
 
@@ -239,3 +241,202 @@ class TestGridSearchOptimizer:
         assert "optimizer" in result.metadata
         assert result.metadata["optimizer"] == "GridSearchOptimizer"
         assert result.metadata["total_combinations"] == 3
+
+
+class TestGridSearchSimpleMAMultipleTickers:
+    """Tests for grid_search_simple_ma with multiple tickers."""
+
+    def _create_mock_data(self, length: int = 100) -> pd.DataFrame:
+        """Create mock stock data DataFrame."""
+        import numpy as np
+
+        dates = pd.date_range(start="2023-01-01", periods=length, freq="D")
+        prices = 100 + np.cumsum(np.random.randn(length) * 0.5)
+        return pd.DataFrame({"Close": prices}, index=dates)
+
+    def test_single_ticker_as_string(self, mocker: Any) -> None:
+        """Test that single ticker as string works correctly."""
+        from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
+
+        # Mock load_stock_data to avoid network calls
+        mock_data = self._create_mock_data()
+
+        def mock_load(
+            ticker: str, return_download_info: bool = False, **kwargs: Any
+        ) -> pd.DataFrame | tuple[pd.DataFrame, bool]:
+            if return_download_info:
+                return mock_data, False
+            return mock_data
+
+        mocker.patch(
+            "stock_autotrade.data.loader.load_stock_data",
+            side_effect=mock_load,
+        )
+
+        result = grid_search_simple_ma(
+            ticker="7203.T",
+            short_windows=[5],
+            long_windows=[10],
+        )
+
+        assert result.metadata["tickers"] == ["7203.T"]
+        assert result.metadata["aggregation"] == "mean"
+
+    def test_single_ticker_as_list(self, mocker: Any) -> None:
+        """Test that single ticker as list works correctly."""
+        from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
+
+        mock_data = self._create_mock_data()
+
+        def mock_load(
+            ticker: str, return_download_info: bool = False, **kwargs: Any
+        ) -> pd.DataFrame | tuple[pd.DataFrame, bool]:
+            if return_download_info:
+                return mock_data, False
+            return mock_data
+
+        mocker.patch(
+            "stock_autotrade.data.loader.load_stock_data",
+            side_effect=mock_load,
+        )
+
+        result = grid_search_simple_ma(
+            ticker=["7203.T"],
+            short_windows=[5],
+            long_windows=[10],
+        )
+
+        assert result.metadata["tickers"] == ["7203.T"]
+
+    def test_multiple_tickers_mean_aggregation(self, mocker: Any) -> None:
+        """Test that multiple tickers with mean aggregation works correctly."""
+        from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
+
+        # Create different price data for different tickers
+        # to ensure different returns
+        data_map: dict[str, pd.DataFrame] = {
+            "7203.T": self._create_mock_data(),
+            "6758.T": self._create_mock_data(),
+            "9984.T": self._create_mock_data(),
+        }
+
+        def mock_load(
+            ticker: str, return_download_info: bool = False, **kwargs: Any
+        ) -> pd.DataFrame | tuple[pd.DataFrame, bool]:
+            if return_download_info:
+                return data_map[ticker], False
+            return data_map[ticker]
+
+        mocker.patch(
+            "stock_autotrade.data.loader.load_stock_data",
+            side_effect=mock_load,
+        )
+
+        result = grid_search_simple_ma(
+            ticker=["7203.T", "6758.T", "9984.T"],
+            short_windows=[5],
+            long_windows=[10],
+            aggregation="mean",
+        )
+
+        # Check that all tickers were used
+        assert result.metadata["tickers"] == ["7203.T", "6758.T", "9984.T"]
+        assert result.metadata["aggregation"] == "mean"
+        # Score should be a finite number
+        assert result.best_score > float("-inf")
+
+    def test_multiple_tickers_min_aggregation(self, mocker: Any) -> None:
+        """Test that multiple tickers with min aggregation works correctly."""
+        from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
+
+        data_map: dict[str, pd.DataFrame] = {
+            "7203.T": self._create_mock_data(),
+            "6758.T": self._create_mock_data(),
+        }
+
+        def mock_load(
+            ticker: str, return_download_info: bool = False, **kwargs: Any
+        ) -> pd.DataFrame | tuple[pd.DataFrame, bool]:
+            if return_download_info:
+                return data_map[ticker], False
+            return data_map[ticker]
+
+        mocker.patch(
+            "stock_autotrade.data.loader.load_stock_data",
+            side_effect=mock_load,
+        )
+
+        result = grid_search_simple_ma(
+            ticker=["7203.T", "6758.T"],
+            short_windows=[5],
+            long_windows=[10],
+            aggregation="min",
+        )
+
+        assert result.metadata["aggregation"] == "min"
+        assert result.best_score > float("-inf")
+
+    def test_multiple_tickers_median_aggregation(self, mocker: Any) -> None:
+        """Test that multiple tickers with median aggregation works correctly."""
+        from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
+
+        data_map: dict[str, pd.DataFrame] = {
+            "7203.T": self._create_mock_data(),
+            "6758.T": self._create_mock_data(),
+            "9984.T": self._create_mock_data(),
+        }
+
+        def mock_load(
+            ticker: str, return_download_info: bool = False, **kwargs: Any
+        ) -> pd.DataFrame | tuple[pd.DataFrame, bool]:
+            if return_download_info:
+                return data_map[ticker], False
+            return data_map[ticker]
+
+        mocker.patch(
+            "stock_autotrade.data.loader.load_stock_data",
+            side_effect=mock_load,
+        )
+
+        result = grid_search_simple_ma(
+            ticker=["7203.T", "6758.T", "9984.T"],
+            short_windows=[5],
+            long_windows=[10],
+            aggregation="median",
+        )
+
+        assert result.metadata["aggregation"] == "median"
+        assert result.best_score > float("-inf")
+
+    def test_multiple_tickers_with_failed_ticker(self, mocker: Any) -> None:
+        """Test that multiple tickers handles failures gracefully."""
+        from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
+
+        mock_data = self._create_mock_data()
+
+        def mock_load(
+            ticker: str, return_download_info: bool = False, **kwargs: Any
+        ) -> pd.DataFrame | tuple[pd.DataFrame, bool]:
+            if ticker == "INVALID":
+                raise ValueError("Invalid ticker")
+            if return_download_info:
+                return mock_data, False
+            return mock_data
+
+        mocker.patch(
+            "stock_autotrade.data.loader.load_stock_data",
+            side_effect=mock_load,
+        )
+
+        # Should not raise, should aggregate valid results only
+        result = grid_search_simple_ma(
+            ticker=["7203.T", "INVALID"],
+            short_windows=[5],
+            long_windows=[10],
+            aggregation="mean",
+        )
+
+        # Only 7203.T succeeds
+        assert result.metadata["tickers"] == ["7203.T"]
+        assert result.metadata["failed_tickers"] == ["INVALID"]
+        assert result.best_score > float("-inf")

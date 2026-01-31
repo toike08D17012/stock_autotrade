@@ -2,14 +2,17 @@
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
+
+import pandas as pd
 
 from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
 
 
 DEFAULTS = {
-    "ticker": "7203.T",
+    "tickers": ["7203.T"],
     "period": "1y",
     "start": None,
     "end": None,
@@ -24,7 +27,8 @@ DEFAULTS = {
     "long_max": 60,
     "long_step": 5,
     "objective": "return",
-    "n_jobs": 1,
+    "aggregation": "mean",
+    "n_jobs": None,
     "output": None,
     "top_n": 10,
     "log_level": "INFO",
@@ -54,8 +58,20 @@ def _parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic grid search with defaults
+  # Basic grid search with single ticker
   python run_parameter_search.py 7203.T
+
+  # Multiple tickers (scores aggregated across all tickers)
+  python run_parameter_search.py 7203.T 6758.T 9984.T
+
+  # Load tickers from CSV file (e.g., output of run_stock_screener.py)
+  python run_parameter_search.py --tickers-file nikkei_225.csv
+
+  # Load tickers from CSV with custom column name
+  python run_parameter_search.py --tickers-file stocks.csv --tickers-column symbol
+
+  # Multiple tickers with minimum aggregation (conservative approach)
+  python run_parameter_search.py 7203.T 6758.T --aggregation min
 
   # Custom parameter ranges
   python run_parameter_search.py 7203.T --short-min 5 --short-max 20 --long-min 20 --long-max 100
@@ -63,13 +79,30 @@ Examples:
   # Optimize for Sharpe ratio and save results
   python run_parameter_search.py 7203.T --objective sharpe --output results.csv
 
-  # Parallel execution
-  python run_parameter_search.py 7203.T --n-jobs 4
+  # Parallel execution with multiple tickers
+  python run_parameter_search.py 7203.T 6758.T 9984.T --n-jobs 4
         """,
     )
 
     # Data arguments
-    parser.add_argument("ticker", nargs="?", default=DEFAULTS["ticker"], help="Ticker symbol, e.g. 7203.T")
+    parser.add_argument(
+        "tickers",
+        nargs="*",
+        default=DEFAULTS["tickers"],
+        help="Ticker symbol(s), e.g. 7203.T 6758.T 9984.T",
+    )
+    parser.add_argument(
+        "--tickers-file",
+        type=str,
+        default=None,
+        help="CSV file containing tickers (e.g., output from run_stock_screener.py)",
+    )
+    parser.add_argument(
+        "--tickers-column",
+        type=str,
+        default="ticker",
+        help="Column name containing tickers in the CSV file",
+    )
     parser.add_argument("--period", default=DEFAULTS["period"], help="Data period (e.g., 1mo, 6mo, 1y, 2y)")
     parser.add_argument("--start", default=DEFAULTS["start"], help="Start date (YYYY-MM-DD)")
     parser.add_argument("--end", default=DEFAULTS["end"], help="End date (YYYY-MM-DD)")
@@ -96,7 +129,45 @@ Examples:
         help="Objective to optimize",
     )
     parser.add_argument(
-        "--n-jobs", type=int, default=DEFAULTS["n_jobs"], help="Number of parallel workers (1=sequential, -1=all CPUs)"
+        "--aggregation",
+        default=DEFAULTS["aggregation"],
+        choices=["mean", "min", "median"],
+        help="Aggregation method for multiple tickers (mean, min, median)",
+    )
+    parser.add_argument(
+        "--n-jobs",
+        type=int,
+        default=DEFAULTS["n_jobs"],
+        help="Number of parallel workers (None=auto based on CPU cores, 1=sequential, -1=all CPUs)",
+    )
+    parser.add_argument(
+        "--download-delay",
+        type=float,
+        default=2.0,
+        help="Delay in seconds between data downloads to avoid rate limiting (default: 2.0)",
+    )
+
+    # Cache arguments
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Disable data caching",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=str,
+        default=None,
+        help="Directory for cache files (default: ~/.cache/stock_autotrade)",
+    )
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear cache before running",
+    )
+    parser.add_argument(
+        "--no-streaming",
+        action="store_true",
+        help="Disable streaming mode: download all tickers first, then run grid search (default: streaming enabled)",
     )
 
     # Output arguments
@@ -108,6 +179,33 @@ Examples:
     return parser.parse_args()
 
 
+def _load_tickers_from_file(file_path: str, column: str) -> list[str]:
+    """Load ticker symbols from a CSV file.
+
+    Args:
+        file_path: Path to the CSV file.
+        column: Column name containing ticker symbols.
+
+    Returns:
+        List of ticker symbols.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the column is not found in the file.
+    """
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Tickers file not found: {file_path}")
+
+    df = pd.read_csv(path)
+    if column not in df.columns:
+        available_columns = ", ".join(df.columns.tolist())
+        raise ValueError(f"Column '{column}' not found in {file_path}. Available columns: {available_columns}")
+
+    tickers = df[column].dropna().astype(str).tolist()
+    return tickers
+
+
 def main() -> None:
     """Run parameter search from CLI."""
     args = _parse_args()
@@ -115,12 +213,52 @@ def main() -> None:
 
     logger = logging.getLogger(__name__)
 
+    # Setup cache
+    from stock_autotrade.data.cache import StockDataCache, set_global_cache
+
+    if args.no_cache:
+        logger.info("Caching disabled")
+        set_global_cache(StockDataCache(enabled=False))
+    else:
+        cache = StockDataCache(cache_dir=args.cache_dir, enabled=True)
+        set_global_cache(cache)
+        logger.info("Cache directory: %s", cache.cache_dir)
+
+        if args.clear_cache:
+            cache.clear()
+            logger.info("Cache cleared")
+
+    # Determine tickers: from file or command line arguments
+    if args.tickers_file:
+        try:
+            tickers = _load_tickers_from_file(args.tickers_file, args.tickers_column)
+            logger.info("Loaded %d tickers from %s", len(tickers), args.tickers_file)
+        except (FileNotFoundError, ValueError) as e:
+            logger.error("Failed to load tickers: %s", e)
+            sys.exit(1)
+    else:
+        tickers = args.tickers
+
+    if not tickers:
+        logger.error("No tickers specified. Provide tickers as arguments or use --tickers-file.")
+        sys.exit(1)
+
     # Build parameter ranges
     short_windows = range(args.short_min, args.short_max + 1, args.short_step)
     long_windows = range(args.long_min, args.long_max + 1, args.long_step)
 
+    # Determine n_jobs: None means auto-detect based on CPU cores
+    n_jobs = args.n_jobs
+    if n_jobs is None:
+        cpu_count = os.cpu_count() or 1
+        n_jobs = max(1, cpu_count - 1)  # Leave one core free for system
+        logger.info("Auto-detected CPU cores: %d, using %d workers", cpu_count, n_jobs)
+
     total_combinations = len(list(short_windows)) * len(list(long_windows))
-    logger.info("Starting parameter search for %s", args.ticker)
+    tickers_str = ", ".join(tickers) if len(tickers) <= 10 else f"{len(tickers)} tickers"
+    logger.info("Starting parameter search for %s", tickers_str)
+    if len(tickers) > 1:
+        logger.info("Aggregation method: %s", args.aggregation)
     logger.info("Short windows: %d-%d (step %d)", args.short_min, args.short_max, args.short_step)
     logger.info("Long windows: %d-%d (step %d)", args.long_min, args.long_max, args.long_step)
     logger.info("Total combinations to evaluate: %d", total_combinations)
@@ -128,7 +266,7 @@ def main() -> None:
 
     try:
         result = grid_search_simple_ma(
-            ticker=args.ticker,
+            ticker=tickers,
             short_windows=range(args.short_min, args.short_max + 1, args.short_step),
             long_windows=range(args.long_min, args.long_max + 1, args.long_step),
             period=args.period,
@@ -139,8 +277,11 @@ def main() -> None:
             trade_size=args.trade_size,
             max_position=args.max_position,
             objective=args.objective,
-            n_jobs=args.n_jobs,
+            n_jobs=n_jobs,
             verbose=1 if args.log_level.upper() == "DEBUG" else 0,
+            aggregation=args.aggregation,
+            download_delay=args.download_delay,
+            streaming=not args.no_streaming,
         )
     except Exception as e:
         logger.error("Parameter search failed: %s", e)
@@ -151,6 +292,9 @@ def main() -> None:
     logger.info("=" * 60)
     logger.info("PARAMETER SEARCH RESULTS")
     logger.info("=" * 60)
+    logger.info("Tickers: %s", tickers_str)
+    if len(tickers) > 1:
+        logger.info("Aggregation: %s", args.aggregation)
     logger.info("Best Parameters:")
     logger.info("  Short Window: %d", result.best_params["short_window"])
     logger.info("  Long Window:  %d", result.best_params["long_window"])

@@ -380,35 +380,274 @@ def get_nikkei225_tickers() -> list[str]:
     """Return a list of Nikkei 225 component stock tickers.
 
     Returns:
-        List of ticker symbols for Nikkei 225 stocks (with .T suffix).
+        List of ticker symbols for all Nikkei 225 stocks (with .T suffix).
 
     Note:
-        This is a static list and may not reflect the latest index composition.
+        This is a static list based on the composition as of January 2026.
+        The actual index composition may change over time due to regular reviews.
         For the most up-to-date list, consider fetching from an external source.
+        Source: https://indexes.nikkei.co.jp/nkave/index/component?idx=nk225
     """
-    # Major Nikkei 225 components (subset - commonly traded large caps)
-    # Full list would need to be updated periodically
     return [
-        "7203.T",  # Toyota
-        "6758.T",  # Sony
-        "9984.T",  # SoftBank
-        "6861.T",  # Keyence
-        "8306.T",  # MUFG
-        "9433.T",  # KDDI
-        "6098.T",  # Recruit
-        "4063.T",  # Shin-Etsu Chemical
-        "6367.T",  # Daikin
-        "6954.T",  # Fanuc
-        "8035.T",  # Tokyo Electron
+        # 医薬品 (Pharmaceuticals) - 9 stocks
+        "4151.T",  # Kyowa Kirin
+        "4502.T",  # Takeda Pharmaceutical
+        "4503.T",  # Astellas Pharma
+        "4506.T",  # Sumitomo Pharma
+        "4507.T",  # Shionogi
         "4519.T",  # Chugai Pharmaceutical
-        "7974.T",  # Nintendo
+        "4523.T",  # Eisai
+        "4568.T",  # Daiichi Sankyo
+        "4578.T",  # Otsuka Holdings
+        # 電気機器 (Electrical Equipment) - 28 stocks
+        "4062.T",  # Ibiden
+        "6479.T",  # Minebea Mitsumi
         "6501.T",  # Hitachi
-        "4502.T",  # Takeda
-        "6902.T",  # Denso
-        "7267.T",  # Honda
-        "8058.T",  # Mitsubishi Corp
-        "7751.T",  # Canon
+        "6503.T",  # Mitsubishi Electric
+        "6504.T",  # Fuji Electric
+        "6506.T",  # Yaskawa Electric
+        "6526.T",  # SociNext
+        "6645.T",  # Omron
+        "6674.T",  # GS Yuasa
+        "6701.T",  # NEC
+        "6702.T",  # Fujitsu
+        "6723.T",  # Renesas Electronics
+        "6724.T",  # Seiko Epson
+        "6752.T",  # Panasonic Holdings
+        "6753.T",  # Sharp
+        "6758.T",  # Sony Group
+        "6762.T",  # TDK
+        "6770.T",  # Alps Alpine
+        "6841.T",  # Yokogawa Electric
         "6857.T",  # Advantest
+        "6861.T",  # Keyence
+        "6902.T",  # Denso
+        "6920.T",  # Lasertec
+        "6952.T",  # Casio Computer
+        "6954.T",  # Fanuc
+        "6963.T",  # Rohm
+        "6971.T",  # Kyocera
+        "6976.T",  # Taiyo Yuden
+        "6981.T",  # Murata Manufacturing
+        "7735.T",  # Screen Holdings
+        "7751.T",  # Canon
+        "7752.T",  # Ricoh
+        "8035.T",  # Tokyo Electron
+        # 自動車 (Automotive) - 12 stocks
+        "7201.T",  # Nissan Motor
+        "7202.T",  # Isuzu Motors
+        "7203.T",  # Toyota Motor
+        "7205.T",  # Hino Motors
+        "7211.T",  # Mitsubishi Motors
+        "7261.T",  # Mazda Motor
+        "7267.T",  # Honda Motor
+        "7269.T",  # Suzuki Motor
+        "7270.T",  # Subaru
+        "7272.T",  # Yamaha Motor
+        # 精密機器 (Precision Instruments) - 6 stocks
+        "4543.T",  # Terumo
+        "4902.T",  # Konica Minolta
+        "6146.T",  # Disco
+        "7731.T",  # Nikon
+        "7733.T",  # Olympus
+        "7741.T",  # Hoya
+        # 通信 (Telecommunications) - 4 stocks
+        "9432.T",  # NTT
+        "9433.T",  # KDDI
+        "9434.T",  # SoftBank Corp
+        "9984.T",  # SoftBank Group
+        # 銀行 (Banking) - 11 stocks
+        "5831.T",  # Shizuoka Financial Group
+        "7186.T",  # Yokohama Financial Group
+        "8304.T",  # Aozora Bank
+        "8306.T",  # Mitsubishi UFJ Financial Group
+        "8308.T",  # Resona Holdings
+        "8309.T",  # Sumitomo Mitsui Trust Group
+        "8316.T",  # Sumitomo Mitsui Financial Group
+        "8331.T",  # Chiba Bank
+        "8354.T",  # Fukuoka Financial Group
+        "8411.T",  # Mizuho Financial Group
+        # その他金融 (Other Finance) - 3 stocks
+        "8253.T",  # Credit Saison
+        "8591.T",  # Orix
+        "8697.T",  # Japan Exchange Group
+        # 証券 (Securities) - 2 stocks
+        "8601.T",  # Daiwa Securities Group
+        "8604.T",  # Nomura Holdings
+        # 保険 (Insurance) - 5 stocks
+        "8630.T",  # Sompo Holdings
+        "8725.T",  # MS&AD Insurance Group
+        "8750.T",  # Dai-ichi Life Holdings
+        "8766.T",  # Tokio Marine Holdings
+        "8795.T",  # T&D Holdings
+        # 水産 (Fishery) - 1 stock
+        "1332.T",  # Nissui
+        # 食品 (Food) - 10 stocks
+        "2002.T",  # Nisshin Seifun Group
+        "2269.T",  # Meiji Holdings
+        "2282.T",  # NH Foods
+        "2501.T",  # Sapporo Holdings
+        "2502.T",  # Asahi Group Holdings
+        "2503.T",  # Kirin Holdings
+        "2801.T",  # Kikkoman
+        "2802.T",  # Ajinomoto
+        "2871.T",  # Nichirei
+        "2914.T",  # Japan Tobacco
+        # 小売業 (Retail) - 10 stocks
+        "3086.T",  # J. Front Retailing
+        "3092.T",  # ZOZO
+        "3099.T",  # Isetan Mitsukoshi Holdings
+        "3382.T",  # Seven & i Holdings
+        "7453.T",  # Ryohin Keikaku (MUJI)
+        "8233.T",  # Takashimaya
+        "8252.T",  # Marui Group
+        "8267.T",  # Aeon
+        "9843.T",  # Nitori Holdings
+        "9983.T",  # Fast Retailing (Uniqlo)
+        # サービス (Services) - 17 stocks
+        "2413.T",  # M3
+        "2432.T",  # DeNA
+        "3659.T",  # Nexon
+        "3697.T",  # SHIFT
+        "4307.T",  # Nomura Research Institute
+        "4324.T",  # Dentsu Group
+        "4385.T",  # Mercari
+        "4661.T",  # Oriental Land (Disney)
+        "4689.T",  # LINE Yahoo
+        "4704.T",  # Trend Micro
+        "4751.T",  # CyberAgent
+        "4755.T",  # Rakuten Group
+        "6098.T",  # Recruit Holdings
+        "6178.T",  # Japan Post Holdings
+        "6532.T",  # BayCurrent
+        "7974.T",  # Nintendo
+        "9602.T",  # Toho
+        "9735.T",  # Secom
+        "9766.T",  # Konami Group
+        # 鉱業 (Mining) - 1 stock
+        "1605.T",  # INPEX
+        # 繊維 (Textiles) - 2 stocks
+        "3401.T",  # Teijin
+        "3402.T",  # Toray Industries
+        # パルプ・紙 (Pulp & Paper) - 1 stock
+        "3861.T",  # Oji Holdings
+        # 化学 (Chemicals) - 17 stocks
+        "3405.T",  # Kuraray
+        "3407.T",  # Asahi Kasei
+        "4004.T",  # Resonac Holdings
+        "4005.T",  # Sumitomo Chemical
+        "4021.T",  # Nissan Chemical
+        "4042.T",  # Tosoh
+        "4043.T",  # Tokuyama
+        "4061.T",  # Denka
+        "4063.T",  # Shin-Etsu Chemical
+        "4183.T",  # Mitsui Chemicals
+        "4188.T",  # Mitsubishi Chemical Group
+        "4208.T",  # UBE
+        "4452.T",  # Kao
+        "4901.T",  # Fujifilm Holdings
+        "4911.T",  # Shiseido
+        "6988.T",  # Nitto Denko
+        # 石油 (Oil) - 2 stocks
+        "5019.T",  # Idemitsu Kosan
+        "5020.T",  # ENEOS Holdings
+        # ゴム (Rubber) - 2 stocks
+        "5101.T",  # Yokohama Rubber
+        "5108.T",  # Bridgestone
+        # 窯業 (Glass & Ceramics) - 6 stocks
+        "5201.T",  # AGC
+        "5214.T",  # Nippon Electric Glass
+        "5233.T",  # Taiheiyo Cement
+        "5301.T",  # Tokai Carbon
+        "5332.T",  # TOTO
+        "5333.T",  # NGK Insulators
+        # 鉄鋼 (Steel) - 3 stocks
+        "5401.T",  # Nippon Steel
+        "5406.T",  # Kobe Steel
+        "5411.T",  # JFE Holdings
+        # 非鉄・金属 (Non-ferrous Metals) - 8 stocks
+        "3436.T",  # SUMCO
+        "5706.T",  # Mitsui Mining & Smelting
+        "5711.T",  # Mitsubishi Materials
+        "5713.T",  # Sumitomo Metal Mining
+        "5714.T",  # DOWA Holdings
+        "5801.T",  # Furukawa Electric
+        "5802.T",  # Sumitomo Electric Industries
+        "5803.T",  # Fujikura
+        # 商社 (Trading Companies) - 7 stocks
+        "2768.T",  # Sojitz
+        "8001.T",  # Itochu
+        "8002.T",  # Marubeni
+        "8015.T",  # Toyota Tsusho
+        "8031.T",  # Mitsui & Co
+        "8053.T",  # Sumitomo Corp
+        "8058.T",  # Mitsubishi Corp
+        # 建設 (Construction) - 9 stocks
+        "1721.T",  # Comsys Holdings
+        "1801.T",  # Taisei Corp
+        "1802.T",  # Obayashi Corp
+        "1803.T",  # Shimizu Corp
+        "1808.T",  # Haseko Corp
+        "1812.T",  # Kajima Corp
+        "1925.T",  # Daiwa House Industry
+        "1928.T",  # Sekisui House
+        "1963.T",  # JGC Holdings
+        # 機械 (Machinery) - 16 stocks
+        "5631.T",  # Japan Steel Works
+        "6103.T",  # Okuma
+        "6113.T",  # Amada
+        "6273.T",  # SMC
+        "6301.T",  # Komatsu
+        "6302.T",  # Sumitomo Heavy Industries
+        "6305.T",  # Hitachi Construction Machinery
+        "6326.T",  # Kubota
+        "6361.T",  # Ebara
+        "6367.T",  # Daikin Industries
+        "6471.T",  # NSK
+        "6472.T",  # NTN
+        "6473.T",  # JTEKT
+        "7004.T",  # Kanadevia (formerly Hitachi Zosen)
+        "7011.T",  # Mitsubishi Heavy Industries
+        "7013.T",  # IHI
+        # 造船 (Shipbuilding) - 1 stock
+        "7012.T",  # Kawasaki Heavy Industries
+        # その他製造 (Other Manufacturing) - 4 stocks
+        "7832.T",  # Bandai Namco Holdings
+        "7911.T",  # Toppan Holdings
+        "7912.T",  # Dai Nippon Printing
+        "7951.T",  # Yamaha
+        # 不動産 (Real Estate) - 5 stocks
+        "3289.T",  # Tokyu Fudosan Holdings
+        "8801.T",  # Mitsui Fudosan
+        "8802.T",  # Mitsubishi Estate
+        "8804.T",  # Tokyo Tatemono
+        "8830.T",  # Sumitomo Realty & Development
+        # 鉄道・バス (Railway & Bus) - 8 stocks
+        "9001.T",  # Tobu Railway
+        "9005.T",  # Tokyu Corp
+        "9007.T",  # Odakyu Electric Railway
+        "9008.T",  # Keio Corp
+        "9009.T",  # Keisei Electric Railway
+        "9020.T",  # East Japan Railway
+        "9021.T",  # West Japan Railway
+        "9022.T",  # Central Japan Railway
+        # 陸運 (Land Transportation) - 2 stocks
+        "9064.T",  # Yamato Holdings
+        "9147.T",  # Nippon Express Holdings
+        # 海運 (Marine Transportation) - 3 stocks
+        "9101.T",  # Nippon Yusen (NYK)
+        "9104.T",  # Mitsui O.S.K. Lines
+        "9107.T",  # Kawasaki Kisen Kaisha
+        # 空運 (Air Transportation) - 2 stocks
+        "9201.T",  # Japan Airlines
+        "9202.T",  # ANA Holdings
+        # 電力 (Electric Power) - 3 stocks
+        "9501.T",  # Tokyo Electric Power
+        "9502.T",  # Chubu Electric Power
+        "9503.T",  # Kansai Electric Power
+        # ガス (Gas) - 2 stocks
+        "9531.T",  # Tokyo Gas
+        "9532.T",  # Osaka Gas
     ]
 
 
