@@ -8,6 +8,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from stock_autotrade.backtest.metrics import (
+    calculate_max_drawdown,
+    calculate_sharpe_ratio,
+)
 from stock_autotrade.strategy.optimization.grid_search import grid_search_simple_ma
 
 
@@ -206,6 +210,74 @@ def _load_tickers_from_file(file_path: str, column: str) -> list[str]:
     return tickers
 
 
+def _run_detailed_backtest(
+    args: argparse.Namespace,
+    short_window: int,
+    long_window: int,
+    tickers: list[str],
+) -> dict[str, float]:
+    """Run backtest with best parameters and extract detailed metrics.
+
+    Args:
+        args: Parsed CLI arguments.
+        short_window: Short moving average window.
+        long_window: Long moving average window.
+        tickers: List of ticker symbols.
+
+    Returns:
+        Dictionary containing detailed performance metrics.
+    """
+    from stock_autotrade.backtest.runner import run_simple_ma_backtest
+
+    all_results = []
+    for ticker in tickers:
+        try:
+            result = run_simple_ma_backtest(
+                ticker=ticker,
+                period=args.period,
+                start=args.start,
+                end=args.end,
+                short_window=short_window,
+                long_window=long_window,
+                initial_cash=args.initial_cash,
+                fee_rate=args.fee_rate,
+                trade_size=args.trade_size,
+                max_position=args.max_position,
+            )
+            all_results.append(result)
+        except Exception as e:
+            logging.getLogger(__name__).warning("Failed to backtest %s: %s", ticker, e)
+            continue
+
+    if not all_results:
+        return {}
+
+    # Aggregate metrics across all tickers
+    metrics = {
+        "final_equity": sum(r.equity_curve.iloc[-1] for r in all_results) / len(all_results),
+        "total_return": sum(r.total_return for r in all_results) / len(all_results),
+        "max_drawdown": sum(calculate_max_drawdown(r.equity_curve) for r in all_results) / len(all_results),
+        "sharpe_ratio": sum(calculate_sharpe_ratio(r.strategy_returns) for r in all_results) / len(all_results),
+    }
+
+    # Calculate trade statistics from first ticker (representative)
+    if all_results:
+        positions = all_results[0].positions
+        position_changes = positions.diff().fillna(0)
+        trades = (position_changes != 0).sum()
+        metrics["num_trades"] = int(trades)
+
+        # Calculate win rate (days with positive returns)
+        returns = all_results[0].strategy_returns
+        if len(returns) > 0:
+            winning_days = (returns > 0).sum()
+            metrics["win_rate"] = float(winning_days / len(returns))
+        else:
+            metrics["win_rate"] = 0.0
+
+    return metrics
+
+
 def main() -> None:
     """Run parameter search from CLI."""
     args = _parse_args()
@@ -289,17 +361,38 @@ def main() -> None:
 
     # Display results
     logger.info("")
-    logger.info("=" * 60)
+    logger.info("=" * 80)
     logger.info("PARAMETER SEARCH RESULTS")
-    logger.info("=" * 60)
+    logger.info("=" * 80)
     logger.info("Tickers: %s", tickers_str)
     if len(tickers) > 1:
         logger.info("Aggregation: %s", args.aggregation)
+    logger.info("Objective: %s", args.objective)
+    logger.info("")
     logger.info("Best Parameters:")
     logger.info("  Short Window: %d", result.best_params["short_window"])
     logger.info("  Long Window:  %d", result.best_params["long_window"])
-    logger.info("  Best Score:   %.4f", result.best_score)
+    logger.info("  Best Score:   %.4f (%s)", result.best_score, args.objective)
 
+    # Run detailed backtest with best parameters
+    logger.info("")
+    logger.info("Detailed Performance Metrics (Best Parameters):")
+    detailed_metrics = _run_detailed_backtest(
+        args,
+        int(result.best_params["short_window"]),
+        int(result.best_params["long_window"]),
+        tickers,
+    )
+    if detailed_metrics:
+        logger.info(f"  Initial Cash:    ¥{args.initial_cash:,.0f}")
+        logger.info(f"  Final Equity:    ¥{detailed_metrics['final_equity']:,.0f}")
+        logger.info(f"  Total Return:    {detailed_metrics['total_return']:+.2%}")
+        logger.info(f"  Max Drawdown:    {detailed_metrics['max_drawdown']:.2%}")
+        logger.info(f"  Sharpe Ratio:    {detailed_metrics['sharpe_ratio']:.4f}")
+        logger.info(f"  Number of Trades: {detailed_metrics['num_trades']:,}")
+        logger.info(f"  Win Rate:        {detailed_metrics['win_rate']:.2%}")
+
+    logger.info("")
     logger.info("Top %d Results:", args.top_n)
     top_results = result.top_n(args.top_n, ascending=False)
     # Filter out invalid combinations (score == -inf)
