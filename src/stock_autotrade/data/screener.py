@@ -8,12 +8,36 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import cast
 
 import pandas as pd
-import yfinance as yf
+
+from .ticker_protocols import TickerWithInfoLike
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _default_ticker_factory(ticker: str) -> TickerWithInfoLike:
+    """Create a yfinance ticker client lazily.
+
+    Args:
+        ticker: Stock ticker symbol.
+
+    Returns:
+        Ticker client compatible with :class:`TickerWithInfoLike`.
+
+    Raises:
+        ModuleNotFoundError: If yfinance is not installed.
+    """
+    try:
+        import yfinance as yf
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "yfinance is required to run stock screening. Install it with `pip install yfinance`."
+        ) from exc
+
+    return cast(TickerWithInfoLike, yf.Ticker(ticker))
 
 
 @dataclass
@@ -119,14 +143,14 @@ class StockScreener:
         ticker_factory: Factory function for creating yfinance Ticker objects.
     """
 
-    def __init__(self, ticker_factory: Callable[[str], yf.Ticker] | None = None) -> None:
+    def __init__(self, ticker_factory: Callable[[str], TickerWithInfoLike] | None = None) -> None:
         """Initialize the stock screener.
 
         Args:
             ticker_factory: Optional factory for creating Ticker objects.
-                Defaults to yfinance.Ticker.
+                Defaults to a lazy yfinance-based factory.
         """
-        self._ticker_factory = ticker_factory or yf.Ticker
+        self._ticker_factory = ticker_factory or _default_ticker_factory
 
     def calculate_metrics(
         self,
@@ -207,7 +231,11 @@ class StockScreener:
         # Market cap (from yfinance info if available)
         try:
             info = ticker_obj.info
-            metrics.market_cap = info.get("marketCap")
+            market_cap = info.get("marketCap")
+            if isinstance(market_cap, (int, float)):
+                metrics.market_cap = float(market_cap)
+            else:
+                metrics.market_cap = None
         except Exception:
             LOGGER.debug("Could not fetch market cap for %s", ticker)
             metrics.market_cap = None

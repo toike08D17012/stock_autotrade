@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest  # type: ignore[import-not-found]
 
+import stock_autotrade.data.loader as loader_module
 from stock_autotrade.data.loader import load_stock_data
 
 
@@ -69,3 +70,21 @@ def test_load_stock_data_rejects_blank_ticker() -> None:
     """Rejects blank tickers."""
     with pytest.raises(ValueError):
         load_stock_data(" ")
+
+
+def test_load_stock_data_uses_lazy_default_factory(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Use lazy default ticker factory when no custom factory is provided."""
+    dates = pd.date_range(start="2024-01-01", periods=2, freq="D")
+    expected = pd.DataFrame({"Close": [1.0, 2.0]}, index=dates)
+    ticker_mock = MagicMock()
+    ticker_mock.history.return_value = expected
+
+    def fake_default_factory(_: str) -> MagicMock:
+        return ticker_mock
+
+    monkeypatch.setattr(loader_module, "_default_ticker_factory", fake_default_factory)
+
+    result = load_stock_data("AAPL", use_cache=False)
+
+    assert len(result) == 2
+    ticker_mock.history.assert_called_once()

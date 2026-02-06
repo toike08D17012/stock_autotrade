@@ -6,12 +6,34 @@ from datetime import datetime, timedelta
 from typing import Literal, cast, overload
 
 import pandas as pd
-import yfinance as yf
 
 from .cache import StockDataCache, get_global_cache
+from .ticker_protocols import TickerLike
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _default_ticker_factory(ticker: str) -> TickerLike:
+    """Create a yfinance ticker client lazily.
+
+    Args:
+        ticker: Stock ticker symbol.
+
+    Returns:
+        Ticker client compatible with :class:`TickerLike`.
+
+    Raises:
+        ModuleNotFoundError: If yfinance is not installed.
+    """
+    try:
+        import yfinance as yf
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "yfinance is required to download stock data. Install it with `pip install yfinance`."
+        ) from exc
+
+    return cast(TickerLike, yf.Ticker(ticker))
 
 
 def _parse_period_to_days(period: str) -> int:
@@ -90,7 +112,7 @@ def load_stock_data(
     period: str = "1mo",
     start: str | None = None,
     end: str | None = None,
-    ticker_factory: Callable[[str], yf.Ticker] | None = None,
+    ticker_factory: Callable[[str], TickerLike] | None = None,
     use_cache: bool = True,
     cache: StockDataCache | None = None,
     return_download_info: Literal[False] = False,
@@ -103,7 +125,7 @@ def load_stock_data(
     period: str = "1mo",
     start: str | None = None,
     end: str | None = None,
-    ticker_factory: Callable[[str], yf.Ticker] | None = None,
+    ticker_factory: Callable[[str], TickerLike] | None = None,
     use_cache: bool = True,
     cache: StockDataCache | None = None,
     return_download_info: Literal[True] = ...,
@@ -115,7 +137,7 @@ def load_stock_data(
     period: str = "1mo",
     start: str | None = None,
     end: str | None = None,
-    ticker_factory: Callable[[str], yf.Ticker] | None = None,
+    ticker_factory: Callable[[str], TickerLike] | None = None,
     use_cache: bool = True,
     cache: StockDataCache | None = None,
     return_download_info: bool = False,
@@ -131,8 +153,8 @@ def load_stock_data(
             Ignored if start/end are provided.
         start (str | None, optional): Start date string (YYYY-MM-DD) or datetime. Defaults to None.
         end (str | None, optional): End date string (YYYY-MM-DD) or datetime. Defaults to None.
-        ticker_factory (Callable[[str], yf.Ticker] | None, optional): Factory for creating ticker clients.
-            Defaults to None, which uses ``yfinance.Ticker``.
+        ticker_factory (Callable[[str], TickerLike] | None, optional): Factory for creating ticker clients.
+            Defaults to None, which lazily creates ``yfinance.Ticker``.
         use_cache (bool, optional): Whether to use caching. Defaults to True.
         cache (StockDataCache | None, optional): Cache instance to use.
             Defaults to None, which uses the global cache.
@@ -199,7 +221,7 @@ def load_stock_data(
         missing_ranges = [(requested_start, requested_end)]
 
     # Download missing data
-    ticker_factory = ticker_factory or yf.Ticker
+    ticker_factory = ticker_factory or _default_ticker_factory
     ticker_obj = ticker_factory(ticker)
 
     all_new_data: list[pd.DataFrame] = []
