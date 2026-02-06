@@ -7,12 +7,26 @@ of parameter values. It supports parallel execution for improved performance.
 import itertools
 import logging
 import queue
+import statistics
 import threading
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
 from typing import Any
 
 import pandas as pd
+
+from stock_autotrade.backtest.engine import run_backtest
+from stock_autotrade.data.loader import load_stock_data
+from stock_autotrade.strategy.optimization.objective import (
+    ObjectiveFunction,
+    calmar_ratio,
+    maximize_return,
+    maximize_sharpe,
+    minimize_drawdown,
+)
+from stock_autotrade.strategy.simple_moving_average import generate_signals
 
 from .base import ObjectiveFnType, OptimizationResult, Optimizer, ParameterSpace
 
@@ -257,26 +271,12 @@ class _SimpleMAEvaluator:
         Returns:
             float: Aggregated objective score.
         """
-        import statistics
-
-        from stock_autotrade.backtest.engine import run_backtest
-        from stock_autotrade.strategy.optimization.objective import (
-            calmar_ratio,
-            maximize_return,
-            maximize_sharpe,
-            minimize_drawdown,
-        )
-        from stock_autotrade.strategy.simple_moving_average import generate_signals
-
         short_window = params["short_window"]
         long_window = params["long_window"]
 
         # Skip invalid combinations
         if short_window >= long_window:
             return float("-inf")
-
-        # Select objective function
-        from stock_autotrade.strategy.optimization.objective import ObjectiveFunction
 
         objective_fns: dict[str, ObjectiveFunction] = {
             "return": maximize_return,
@@ -285,9 +285,6 @@ class _SimpleMAEvaluator:
             "calmar": calmar_ratio,
         }
         obj_fn: ObjectiveFunction = objective_fns.get(self.objective, maximize_return)
-
-        # Select aggregation function
-        from collections.abc import Callable
 
         aggregation_fns: dict[str, Callable[[list[float]], float]] = {
             "mean": statistics.mean,
@@ -401,9 +398,6 @@ def grid_search_simple_ma(
         )
 
     # Original batch mode
-    from datetime import datetime, timedelta
-
-    from stock_autotrade.data.loader import load_stock_data
 
     # Use yesterday as end date if not specified (today's data typically doesn't exist)
     effective_end = end
@@ -529,16 +523,6 @@ class _SingleTickerEvaluator:
         Returns:
             float: Objective score.
         """
-        from stock_autotrade.backtest.engine import run_backtest
-        from stock_autotrade.strategy.optimization.objective import (
-            ObjectiveFunction,
-            calmar_ratio,
-            maximize_return,
-            maximize_sharpe,
-            minimize_drawdown,
-        )
-        from stock_autotrade.strategy.simple_moving_average import generate_signals
-
         short_window = params["short_window"]
         long_window = params["long_window"]
 
@@ -613,12 +597,6 @@ def _grid_search_simple_ma_streaming(
     Returns:
         OptimizationResult: Grid search results.
     """
-    import statistics
-    from collections.abc import Callable
-    from datetime import datetime, timedelta
-
-    from stock_autotrade.data.loader import load_stock_data
-
     # Use yesterday as end date if not specified (today's data typically doesn't exist)
     effective_end = end
     if effective_end is None:
@@ -651,8 +629,11 @@ def _grid_search_simple_ma_streaming(
     failed_tickers: list[str] = []
     status_lock = threading.Lock()
 
-    # Queue for tickers ready to be processed
-    ticker_queue: queue.Queue[tuple[str, pd.Series] | None] = queue.Queue()
+    # Queue for tickers ready to be processed.
+    # Limit the maximum size so that we do not keep too many unprocessed
+    # price series in memory when downloads are faster than grid search.
+    max_pending_tickers = max(2, (n_jobs if n_jobs and n_jobs > 0 else 1) * 2)
+    ticker_queue: queue.Queue[tuple[str, pd.Series] | None] = queue.Queue(maxsize=max_pending_tickers)
 
     def download_worker() -> None:
         """Worker thread that downloads ticker data and puts it in the queue."""
@@ -660,12 +641,19 @@ def _grid_search_simple_ma_streaming(
             downloaded = False
             try:
                 result = load_stock_data(
-                    ticker=t, period=period, start=start, end=effective_end, return_download_info=True
+                    ticker=t,
+                    period=period,
+                    start=start,
+                    end=effective_end,
+                    return_download_info=True,
                 )
                 data, downloaded = result
                 if "Close" in data.columns:
                     prices = data["Close"].dropna()
                     if not prices.empty:
+                        # This will block when the queue is full, preventing
+                        # too many price series from being kept in memory
+                        # while waiting for grid search processing.
                         ticker_queue.put((t, prices))
                         if verbose >= 1:
                             cache_status = "" if downloaded else " (cached)"
@@ -745,23 +733,19 @@ def _grid_search_simple_ma_streaming(
     download_thread = threading.Thread(target=download_worker, daemon=True)
     download_thread.start()
 
-    # Process tickers as they become available
-    process_threads: list[threading.Thread] = []
-    while True:
-        item = ticker_queue.get()
-        if item is None:
-            # Download complete
-            break
+    # Process tickers as they become available.
+    # Limit the number of concurrent grid searches to avoid excessive
+    # memory usage from running many ProcessPoolExecutors in parallel.
+    max_ticker_workers = max(1, n_jobs if n_jobs and n_jobs > 0 else 1)
+    with ThreadPoolExecutor(max_workers=max_ticker_workers) as executor:
+        while True:
+            item = ticker_queue.get()
+            if item is None:
+                # Download complete
+                break
 
-        ticker, prices = item
-        # Start processing this ticker in a new thread
-        thread = threading.Thread(target=process_ticker, args=(ticker, prices), daemon=True)
-        thread.start()
-        process_threads.append(thread)
-
-    # Wait for all processing threads to complete
-    for thread in process_threads:
-        thread.join()
+            ticker, prices = item
+            executor.submit(process_ticker, ticker, prices)
 
     # Wait for download thread to complete
     download_thread.join()
