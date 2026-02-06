@@ -206,7 +206,7 @@ def _load_tickers_from_file(file_path: str, column: str) -> list[str]:
         available_columns = ", ".join(df.columns.tolist())
         raise ValueError(f"Column '{column}' not found in {file_path}. Available columns: {available_columns}")
 
-    tickers = df[column].dropna().astype(str).tolist()
+    tickers = [ticker.strip() for ticker in df[column].dropna().astype(str).tolist() if ticker.strip()]
     return tickers
 
 
