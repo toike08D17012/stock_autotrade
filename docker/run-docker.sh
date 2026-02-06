@@ -10,4 +10,4 @@ else
 fi
 
 # デフォルトではbash、引数があればそれを実行
-docker compose $COMPOSE_FILES run --rm ml-env "${@:-bash}"
+docker compose $COMPOSE_FILES run --rm stock_autotrade "${@:-bash}"
